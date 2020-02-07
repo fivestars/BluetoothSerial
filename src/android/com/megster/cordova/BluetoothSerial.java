@@ -489,7 +489,7 @@ public class BluetoothSerial extends CordovaPlugin {
                         if (enableBluetoothCallback != null) {
                             enableBluetoothCallback.success();
                         }
-                        enableBluetoothCallback = null;
+                        cleanUpEnableBluetooth();
                         break;
                     case BluetoothAdapter.STATE_TURNING_ON:
                         // Bluetooth is turning on
@@ -499,11 +499,18 @@ public class BluetoothSerial extends CordovaPlugin {
                         if (enableBluetoothCallback != null) {
                             enableBluetoothCallback.error("Error enabling bluetooth");
                         }
-                        enableBluetoothCallback = null;
+                        cleanUpEnableBluetooth();
+                        break;
                 }
             }
         }
     };
+
+    private void cleanUpEnableBluetooth() {
+        enableBluetoothCallback = null;
+        Activity activity = cordova.getActivity();
+        activity.unregisterReceiver(bluetoothStatusReceiver);
+    }
 
     IntentFilter bluetoothIntentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
 }
