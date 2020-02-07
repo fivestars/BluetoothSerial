@@ -485,10 +485,21 @@ public class BluetoothSerial extends CordovaPlugin {
                         break;
                     case BluetoothAdapter.STATE_ON:
                         // Bluetooth has been on
+                        Log.d(TAG, "User enabled Bluetooth");
+                        if (enableBluetoothCallback != null) {
+                            enableBluetoothCallback.success();
+                        }
+                        enableBluetoothCallback = null;
                         break;
                     case BluetoothAdapter.STATE_TURNING_ON:
                         // Bluetooth is turning on
                         break;
+                    default:
+                        Log.d(TAG, "Error enabling bluetooth");
+                        if (enableBluetoothCallback != null) {
+                            enableBluetoothCallback.error("Error enabling bluetooth");
+                        }
+                        enableBluetoothCallback = null;
                 }
             }
         }
