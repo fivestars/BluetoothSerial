@@ -213,10 +213,10 @@ public class BluetoothSerial extends CordovaPlugin {
             activity.registerReceiver(bluetoothStatusReceiver, bluetoothIntentFilter);
             bluetoothAdapter.enable();
 
-        }else if (action.equals(DISABLE)) {
+        } else if (action.equals(DISABLE)) {
 
-            BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            mBluetoothAdapter.disable();
+            bluetoothAdapter.disable();
+            callbackContext.success();
 
         } else if (action.equals(DISCOVER_UNPAIRED)) {
 
