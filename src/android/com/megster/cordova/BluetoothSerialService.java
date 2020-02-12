@@ -443,7 +443,11 @@ public class BluetoothSerialService {
             while (true) {
                 try {
                     // Read from the InputStream
-                    bytes = mmInStream.read(buffer);
+                    while (mmInStream.available() == 0)
+                        Thread.sleep(100);
+
+                    int available = mmInStream.available() > 1024 ? 1024 : mmInStream.available();
+                    bytes = mmInStream.read(buffer, 0, available);
                     String data = new String(buffer, 0, bytes);
 
                     // Send the new data String to the UI Activity
