@@ -443,8 +443,15 @@ public class BluetoothSerialService {
             while (true) {
                 try {
                     // Read from the InputStream
-                    while (mmInStream.available() == 0)
-                        Thread.sleep(100);
+                    while (mmInStream.available() == 0) {
+                        try {
+                            Thread.sleep(100);
+                        } catch(Exception e2) {
+                            Log.e(TAG, "sleep waiting on data", e2);
+                        }
+                    }
+
+
 
                     int available = mmInStream.available() > 1024 ? 1024 : mmInStream.available();
                     bytes = mmInStream.read(buffer, 0, available);
