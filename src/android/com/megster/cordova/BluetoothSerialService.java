@@ -99,10 +99,10 @@ public class BluetoothSerialService {
         setState(STATE_LISTEN);
 
         // Start the thread to listen on a BluetoothServerSocket
-        if (mSecureAcceptThread == null) {
-            mSecureAcceptThread = new AcceptThread(true);
-            mSecureAcceptThread.start();
-        }
+        // if (mSecureAcceptThread == null) {
+        //     mSecureAcceptThread = new AcceptThread(true);
+        //     mSecureAcceptThread.start();
+        // }
         if (mInsecureAcceptThread == null) {
             mInsecureAcceptThread = new AcceptThread(false);
             mInsecureAcceptThread.start();
