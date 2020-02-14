@@ -340,7 +340,7 @@ class BluetoothSerialService(handler: Handler) {
             while (true) {
                 try { // Read from the InputStream
                     bytes = mmInStream!!.read(buffer)
-                    val data = kotlin.String(buffer, 0, bytes)
+                    val data = String(buffer, 0, bytes)
                     // Send the new data String to the UI Activity
                     mHandler.obtainMessage(BluetoothSerial.MESSAGE_READ, data).sendToTarget()
                     // Send the raw bytestream to the UI Activity.
