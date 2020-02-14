@@ -157,14 +157,14 @@ class BluetoothSerialService(handler: Handler) {
      * @see ConnectedThread.write
      */
     fun write(out: ByteArray?) { // Create temporary object
-        var r: ConnectedThread?
+        var r: ConnectedThread? = null
         // Synchronize a copy of the ConnectedThread
         synchronized(this) {
             if (mState != STATE_CONNECTED) return
             r = mConnectedThread
         }
         // Perform the write unsynchronized
-        r!!.write(out)
+        r?.write(out)
     }
 
     /**
@@ -228,6 +228,8 @@ class BluetoothSerialService(handler: Handler) {
                                 } catch (e: IOException) {
                                     Log.e(TAG, "Could not close unwanted socket", e)
                                 }
+                            else ->
+                                Log.v(TAG, "State is: $mState")
                         }
                     }
                 }
@@ -338,7 +340,7 @@ class BluetoothSerialService(handler: Handler) {
             while (true) {
                 try { // Read from the InputStream
                     bytes = mmInStream!!.read(buffer)
-                    val data = String(buffer, 0, bytes)
+                    val data = kotlin.String(buffer, 0, bytes)
                     // Send the new data String to the UI Activity
                     mHandler.obtainMessage(BluetoothSerial.MESSAGE_READ, data).sendToTarget()
                     // Send the raw bytestream to the UI Activity.

@@ -33,18 +33,54 @@ class BluetoothSerial : CordovaPlugin() {
     private var enableBluetoothCallback: CallbackContext? = null
     private var deviceDiscoveredCallback: CallbackContext? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private var bluetoothSerialService: BluetoothSerialService? = null
+    // The Handler that gets information back from the BluetoothSerialService
+// Original code used handler for the because it was talking to the UI.
+// Consider replacing with normal callbacks
+    private val mHandler: Handler = object : Handler() {
+        override fun handleMessage(msg: Message) {
+            when (msg.what) {
+                MESSAGE_READ -> {
+                    buffer.append(msg.obj as String)
+                    if (dataAvailableCallback != null) {
+                        sendDataToSubscriber()
+                    }
+                }
+                MESSAGE_READ_RAW -> if (rawDataAvailableCallback != null) {
+                    val bytes = msg.obj as ByteArray
+                    sendRawDataToSubscriber(bytes)
+                }
+                MESSAGE_STATE_CHANGE -> {
+                    if (D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1)
+                    when (msg.arg1) {
+                        BluetoothSerialService.STATE_CONNECTED -> {
+                            Log.i(TAG, "BluetoothSerialService.STATE_CONNECTED")
+                            notifyConnectionSuccess()
+                        }
+                        BluetoothSerialService.STATE_CONNECTING -> Log.i(TAG, "BluetoothSerialService.STATE_CONNECTING")
+                        BluetoothSerialService.STATE_LISTEN -> Log.i(TAG, "BluetoothSerialService.STATE_LISTEN")
+                        BluetoothSerialService.STATE_NONE -> Log.i(TAG, "BluetoothSerialService.STATE_NONE")
+                    }
+                }
+                MESSAGE_WRITE -> {
+                }
+                MESSAGE_DEVICE_NAME -> Log.i(TAG, msg.data.getString(DEVICE_NAME))
+                MESSAGE_TOAST -> {
+                    val message = msg.data.getString(TOAST)
+                    notifyConnectionLost(message)
+                }
+            }
+        }
+    }
+
+    private val bluetoothSerialService: BluetoothSerialService = BluetoothSerialService(mHandler)
     var buffer = StringBuffer()
     private var delimiter: String? = null
     private var permissionCallback: CallbackContext? = null
     @Throws(JSONException::class)
-    fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
+    override fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
         LOG.d(TAG, "action = $action")
         if (bluetoothAdapter == null) {
             bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        }
-        if (bluetoothSerialService == null) {
-            bluetoothSerialService = BluetoothSerialService(mHandler)
         }
         var validAction = true
         if (action == LIST) {
@@ -83,7 +119,7 @@ class BluetoothSerial : CordovaPlugin() {
             delimiter = null
             // send no result, so Cordova won't hold onto the data available callback anymore
             val result = PluginResult(PluginResult.Status.NO_RESULT)
-            dataAvailableCallback.sendPluginResult(result)
+            dataAvailableCallback?.sendPluginResult(result)
             dataAvailableCallback = null
             callbackContext.success()
         } else if (action == SUBSCRIBE_RAW) {
@@ -101,7 +137,7 @@ class BluetoothSerial : CordovaPlugin() {
                 callbackContext.error("Bluetooth is disabled.")
             }
         } else if (action == IS_CONNECTED) {
-            if (bluetoothSerialService.getState() === BluetoothSerialService.STATE_CONNECTED) {
+            if (bluetoothSerialService.state === BluetoothSerialService.STATE_CONNECTED) {
                 callbackContext.success()
             } else {
                 callbackContext.error("Not connected.")
@@ -147,7 +183,7 @@ class BluetoothSerial : CordovaPlugin() {
         return validAction
     }
 
-    fun onDestroy() {
+    override fun onDestroy() {
         super.onDestroy()
         if (bluetoothSerialService != null) {
             bluetoothSerialService.stop()
@@ -185,7 +221,7 @@ class BluetoothSerial : CordovaPlugin() {
                         Log.e(TAG, "Problem converting device to JSON", e)
                     }
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED == action) {
-                    callbackContext.success(unpairedDevices)
+                    callbackContext?.success(unpairedDevices)
                     cordova.getActivity().unregisterReceiver(this)
                 }
             }
@@ -224,48 +260,10 @@ class BluetoothSerial : CordovaPlugin() {
         }
     }
 
-    // The Handler that gets information back from the BluetoothSerialService
-// Original code used handler for the because it was talking to the UI.
-// Consider replacing with normal callbacks
-    private val mHandler: Handler = object : Handler() {
-        override fun handleMessage(msg: Message) {
-            when (msg.what) {
-                MESSAGE_READ -> {
-                    buffer.append(msg.obj as String)
-                    if (dataAvailableCallback != null) {
-                        sendDataToSubscriber()
-                    }
-                }
-                MESSAGE_READ_RAW -> if (rawDataAvailableCallback != null) {
-                    val bytes = msg.obj as ByteArray
-                    sendRawDataToSubscriber(bytes)
-                }
-                MESSAGE_STATE_CHANGE -> {
-                    if (D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1)
-                    when (msg.arg1) {
-                        BluetoothSerialService.STATE_CONNECTED -> {
-                            Log.i(TAG, "BluetoothSerialService.STATE_CONNECTED")
-                            notifyConnectionSuccess()
-                        }
-                        BluetoothSerialService.STATE_CONNECTING -> Log.i(TAG, "BluetoothSerialService.STATE_CONNECTING")
-                        BluetoothSerialService.STATE_LISTEN -> Log.i(TAG, "BluetoothSerialService.STATE_LISTEN")
-                        BluetoothSerialService.STATE_NONE -> Log.i(TAG, "BluetoothSerialService.STATE_NONE")
-                    }
-                }
-                MESSAGE_WRITE -> {
-                }
-                MESSAGE_DEVICE_NAME -> Log.i(TAG, msg.data.getString(DEVICE_NAME))
-                MESSAGE_TOAST -> {
-                    val message = msg.data.getString(TOAST)
-                    notifyConnectionLost(message)
-                }
-            }
-        }
-    }
 
     private fun notifyConnectionLost(error: String?) {
         if (connectCallback != null) {
-            connectCallback.error(error)
+            connectCallback?.error(error)
             connectCallback = null
         }
     }
@@ -274,7 +272,7 @@ class BluetoothSerial : CordovaPlugin() {
         if (connectCallback != null) {
             val result = PluginResult(PluginResult.Status.OK)
             result.setKeepCallback(true)
-            connectCallback.sendPluginResult(result)
+            connectCallback?.sendPluginResult(result)
         }
     }
 
@@ -282,7 +280,7 @@ class BluetoothSerial : CordovaPlugin() {
         if (data != null && data.size > 0) {
             val result = PluginResult(PluginResult.Status.OK, data)
             result.setKeepCallback(true)
-            rawDataAvailableCallback.sendPluginResult(result)
+            rawDataAvailableCallback?.sendPluginResult(result)
         }
     }
 
@@ -291,7 +289,7 @@ class BluetoothSerial : CordovaPlugin() {
         if (data != null && data.length > 0) {
             val result = PluginResult(PluginResult.Status.OK, data)
             result.setKeepCallback(true)
-            dataAvailableCallback.sendPluginResult(result)
+            dataAvailableCallback?.sendPluginResult(result)
             sendDataToSubscriber()
         }
     }
@@ -318,12 +316,12 @@ class BluetoothSerial : CordovaPlugin() {
     }
 
     @Throws(JSONException::class)
-    fun onRequestPermissionResult(requestCode: Int, permissions: Array<String?>?,
-                                  grantResults: IntArray) {
+    override fun onRequestPermissionResult(requestCode: Int, permissions: Array<String?>?,
+                                           grantResults: IntArray) {
         for (result in grantResults) {
             if (result == PackageManager.PERMISSION_DENIED) {
                 LOG.d(TAG, "User *rejected* location permission")
-                permissionCallback.sendPluginResult(PluginResult(
+                permissionCallback?.sendPluginResult(PluginResult(
                         PluginResult.Status.ERROR,
                         "Location permission is required to discover unpaired devices.")
                 )
@@ -353,7 +351,7 @@ class BluetoothSerial : CordovaPlugin() {
                         // Bluetooth has been on
                         Log.d(TAG, "User enabled Bluetooth")
                         if (enableBluetoothCallback != null) {
-                            enableBluetoothCallback.success()
+                            enableBluetoothCallback?.success()
                         }
                         cleanUpEnableBluetooth()
                     }
@@ -362,7 +360,7 @@ class BluetoothSerial : CordovaPlugin() {
                     else -> {
                         Log.d(TAG, "Error enabling bluetooth")
                         if (enableBluetoothCallback != null) {
-                            enableBluetoothCallback.error("Error enabling bluetooth")
+                            enableBluetoothCallback?.error("Error enabling bluetooth")
                         }
                         cleanUpEnableBluetooth()
                     }
