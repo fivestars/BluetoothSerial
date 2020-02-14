@@ -36,9 +36,9 @@
         </config-file>
 
         <source-file src="src/android/com/megster/cordova/BluetoothSerial.kt"
-            target-dir="app/src/com/megster/cordova"/>
+            target-dir="app/src/main/java/com/megster/cordova"/>
         <source-file src="src/android/com/megster/cordova/BluetoothSerialService.kt"
-            target-dir="app/src/com/megster/cordova"/>
+            target-dir="app/src/main/java/com/megster/cordova"/>
 
         <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.BLUETOOTH" />
