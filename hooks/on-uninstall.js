@@ -2,11 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const xml2js = require('xml2js');
 
-<<<<<<< HEAD
-const PLUGIN_ID = "cordova-plugin-hello-kotlin";
-=======
 const PLUGIN_ID = "cordova-plugin-bluetooth-serial";
->>>>>>> 4845bd035376b495f665209e23b25b0c3760f459
 const androidPlatformRoot = "./platforms/android/";
 
 let  deferral;
@@ -41,7 +37,7 @@ function removeKotlinSourceFiles(){
                 break;
             }
     });
-    
+
 }
 module.exports = function(ctx) {
     try{
