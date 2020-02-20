@@ -32,12 +32,6 @@ class BluetoothSerial : CordovaPlugin() {
     private val handler: Handler = object : Handler() {
         override fun handleMessage(msg: Message) {
             when (msg.what) {
-                MESSAGE_READ -> {
-                    buffer.append(msg.obj as String)
-                    if (dataAvailableCallback != null) {
-                        sendDataToSubscriber()
-                    }
-                }
                 MESSAGE_READ_RAW -> if (rawDataAvailableCallback != null) {
                     val bytes = msg.obj as ByteArray
                     sendRawDataToSubscriber(bytes)
@@ -67,7 +61,6 @@ class BluetoothSerial : CordovaPlugin() {
 
     private val bluetoothSerialService: BluetoothSerialService = BluetoothSerialService(handler)
     var buffer = StringBuffer()
-    private var delimiter: String? = null
     private var permissionCallback: CallbackContext? = null
     @Throws(JSONException::class)
     override fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
@@ -77,7 +70,7 @@ class BluetoothSerial : CordovaPlugin() {
         }
         var validAction = true
         when (action) {
-            CONNECT_INSECURE -> { // see Android docs about Insecure RFCOMM http://goo.gl/1mFjZY
+            CONNECT -> { // see Android docs about Insecure RFCOMM http://goo.gl/1mFjZY
                 val secure = false
                 connect(args, secure, callbackContext)
             }
@@ -91,7 +84,7 @@ class BluetoothSerial : CordovaPlugin() {
                 bluetoothSerialService.write(data)
                 callbackContext.success()
             }
-            SUBSCRIBE_RAW -> {
+            LISTEN -> {
                 rawDataAvailableCallback = callbackContext
                 val result = PluginResult(PluginResult.Status.NO_RESULT)
                 result.keepCallback = true
@@ -102,6 +95,9 @@ class BluetoothSerial : CordovaPlugin() {
                     callbackContext.success(address)
                 } ?: callbackContext.error("Unable to access BluetoothAdapter")
             }
+            REGISTER_DATA_CALLBACK -> {}
+            REGISTER_CONNECT_CALLBACK -> {}
+            REGISTER_CLOSE_CALLBACK -> {}
             else -> {
                 validAction = false
             }
@@ -111,7 +107,7 @@ class BluetoothSerial : CordovaPlugin() {
 
     override fun onDestroy() {
         super.onDestroy()
-        bluetoothSerialService?.stop()
+        bluetoothSerialService.stop()
     }
 
     @Throws(JSONException::class)
@@ -198,26 +194,6 @@ class BluetoothSerial : CordovaPlugin() {
         }
     }
 
-    private fun sendDataToSubscriber() {
-        val data = readUntil(delimiter)
-        if (data.isNotEmpty()) {
-            val result = PluginResult(PluginResult.Status.OK, data)
-            result.keepCallback = true
-            dataAvailableCallback?.sendPluginResult(result)
-            sendDataToSubscriber()
-        }
-    }
-
-    private fun readUntil(c: String?): String {
-        var data = ""
-        val index = buffer.indexOf(c!!, 0)
-        if (index > -1) {
-            data = buffer.substring(0, index + c.length)
-            buffer.delete(0, index + c.length)
-        }
-        return data
-    }
-
     @Throws(JSONException::class)
     override fun onRequestPermissionResult(requestCode: Int, permissions: Array<String?>?,
                                            grantResults: IntArray) {
@@ -302,16 +278,19 @@ class BluetoothSerial : CordovaPlugin() {
 
     companion object {
         // actions
-        private const val CONNECT_INSECURE = "connectInsecure"
+        private const val CONNECT = "connectInsecure"
+        private const val LISTEN = "subscribeRaw"
         private const val DISCONNECT = "disconnect"
         private const val SEND = "write"
-        private const val SUBSCRIBE_RAW = "subscribeRaw"
         private const val GET_ADDRESS = "getAddress"
+        private const val REGISTER_DATA_CALLBACK = "registerDataCallback"
+        private const val REGISTER_CONNECT_CALLBACK = "registerConnectCallback"
+        private const val REGISTER_CLOSE_CALLBACK = "registerCloseCallback"
+
         // Debugging
         private const val TAG = "BluetoothSerial"
         // Message types sent from the BluetoothSerialService Handler
         const val MESSAGE_STATE_CHANGE = 1
-        const val MESSAGE_READ = 2
         const val MESSAGE_WRITE = 3
         const val MESSAGE_DEVICE_NAME = 4
         const val MESSAGE_TOAST = 5
