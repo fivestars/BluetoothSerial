@@ -348,6 +348,7 @@ class BluetoothSerialService(handler: Handler) {
 // when / if we read less than its size.
                     if (bytes > 0) {
                         val rawdata = Arrays.copyOf(buffer, bytes)
+                        Log.i(TAG, "Message Received ".plus(rawData.toString(Charsets.UTF_8)))
                         mHandler.obtainMessage(BluetoothSerial.MESSAGE_READ_RAW, rawdata).sendToTarget()
                     }
                 } catch (e: IOException) {

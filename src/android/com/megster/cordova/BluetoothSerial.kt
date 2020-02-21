@@ -124,6 +124,7 @@ class BluetoothSerial : CordovaPlugin() {
             callbackContext.success()
         } else if (action == SUBSCRIBE_RAW) {
             rawDataAvailableCallback = callbackContext
+            bluetoothSerialService.start()
             val result = PluginResult(PluginResult.Status.NO_RESULT)
             result.setKeepCallback(true)
             callbackContext.sendPluginResult(result)
