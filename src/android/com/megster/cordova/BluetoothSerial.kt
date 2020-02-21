@@ -283,7 +283,7 @@ class BluetoothSerial : CordovaPlugin() {
 
     private fun sendRawDataToSubscriber(data: ByteArray?) {
         if (data != null && data.size > 0) {
-            val result = PluginResult(PluginResult.Status.OK, data)
+            val result = PluginResult(PluginResult.Status.OK, data.toString(Charsets.UTF_8))
             result.setKeepCallback(true)
             rawDataAvailableCallback?.sendPluginResult(result)
         }
