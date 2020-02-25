@@ -8,9 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Handler
-import android.os.Message
 import android.util.Log
 import org.apache.cordova.*
 import org.json.JSONArray
@@ -23,43 +20,11 @@ import java.lang.reflect.Field
  */
 class BluetoothSerial : CordovaPlugin() {
     private var connectCallback: CallbackContext? = null
+    private var closeCallback: CallbackContext? = null
     private var dataAvailableCallback: CallbackContext? = null
-    private var rawDataAvailableCallback: CallbackContext? = null
-    private var enableBluetoothCallback: CallbackContext? = null
-    private var deviceDiscoveredCallback: CallbackContext? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
 
-    private val handler: Handler = object : Handler() {
-        override fun handleMessage(msg: Message) {
-            when (msg.what) {
-                MESSAGE_READ_RAW -> if (rawDataAvailableCallback != null) {
-                    val bytes = msg.obj as ByteArray
-                    sendRawDataToSubscriber(bytes)
-                }
-                MESSAGE_STATE_CHANGE -> {
-                    if (BuildConfig.DEBUG) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1)
-                    when (msg.arg1) {
-                        BluetoothSerialService.STATE_CONNECTED -> {
-                            Log.i(TAG, "BluetoothSerialService.STATE_CONNECTED")
-                            notifyConnectionSuccess()
-                        }
-                        BluetoothSerialService.STATE_CONNECTING -> Log.i(TAG, "BluetoothSerialService.STATE_CONNECTING")
-                        BluetoothSerialService.STATE_LISTEN -> Log.i(TAG, "BluetoothSerialService.STATE_LISTEN")
-                        BluetoothSerialService.STATE_NONE -> Log.i(TAG, "BluetoothSerialService.STATE_NONE")
-                    }
-                }
-                MESSAGE_WRITE -> {
-                }
-                MESSAGE_DEVICE_NAME -> Log.i(TAG, msg.data.getString(DEVICE_NAME))
-                MESSAGE_TOAST -> {
-                    val message = msg.data.getString(TOAST)
-                    notifyConnectionLost(message)
-                }
-            }
-        }
-    }
-
-    private val bluetoothSerialService: BluetoothSerialService = BluetoothSerialService(handler)
+    private val bluetoothSerialService: BluetoothSerialService = BluetoothSerialService()
     var buffer = StringBuffer()
     private var permissionCallback: CallbackContext? = null
     @Throws(JSONException::class)
@@ -70,12 +35,10 @@ class BluetoothSerial : CordovaPlugin() {
         }
         var validAction = true
         when (action) {
-            CONNECT -> { // see Android docs about Insecure RFCOMM http://goo.gl/1mFjZY
-                val secure = false
-                connect(args, secure, callbackContext)
+            CONNECT -> {
+                connect(args, callbackContext)
             }
             DISCONNECT -> {
-                connectCallback = null
                 bluetoothSerialService.stop()
                 callbackContext.success()
             }
@@ -85,9 +48,8 @@ class BluetoothSerial : CordovaPlugin() {
                 callbackContext.success()
             }
             LISTEN -> {
-                rawDataAvailableCallback = callbackContext
+                bluetoothSerialService.start()
                 val result = PluginResult(PluginResult.Status.NO_RESULT)
-                result.keepCallback = true
                 callbackContext.sendPluginResult(result)
             }
             GET_ADDRESS -> {
@@ -95,9 +57,24 @@ class BluetoothSerial : CordovaPlugin() {
                     callbackContext.success(address)
                 } ?: callbackContext.error("Unable to access BluetoothAdapter")
             }
-            REGISTER_DATA_CALLBACK -> {}
-            REGISTER_CONNECT_CALLBACK -> {}
-            REGISTER_CLOSE_CALLBACK -> {}
+            REGISTER_DATA_CALLBACK -> {
+                dataAvailableCallback = callbackContext
+                val result = PluginResult(PluginResult.Status.NO_RESULT)
+                result.keepCallback = true
+                callbackContext.sendPluginResult(result)
+            }
+            REGISTER_CONNECT_CALLBACK -> {
+                connectCallback = callbackContext
+                val result = PluginResult(PluginResult.Status.NO_RESULT)
+                result.keepCallback = true
+                callbackContext.sendPluginResult(result)
+            }
+            REGISTER_CLOSE_CALLBACK -> {
+                closeCallback = callbackContext
+                val result = PluginResult(PluginResult.Status.NO_RESULT)
+                result.keepCallback = true
+                callbackContext.sendPluginResult(result)
+            }
             else -> {
                 validAction = false
             }
@@ -155,15 +132,12 @@ class BluetoothSerial : CordovaPlugin() {
     }
 
     @Throws(JSONException::class)
-    private fun connect(args: CordovaArgs, secure: Boolean, callbackContext: CallbackContext) {
+    private fun connect(args: CordovaArgs, callbackContext: CallbackContext) {
         val macAddress: String = args.getString(0)
         val device = bluetoothAdapter!!.getRemoteDevice(macAddress)
         if (device != null) {
-            connectCallback = callbackContext
-            bluetoothSerialService.connect(device, secure)
-            buffer.setLength(0)
+            bluetoothSerialService.connect(device)
             val result = PluginResult(PluginResult.Status.NO_RESULT)
-            result.keepCallback = true
             callbackContext.sendPluginResult(result)
         } else {
             callbackContext.error("Could not connect to $macAddress")
@@ -172,25 +146,20 @@ class BluetoothSerial : CordovaPlugin() {
 
 
     private fun notifyConnectionLost(error: String?) {
-        if (connectCallback != null) {
-            connectCallback?.error(error)
-            connectCallback = null
-        }
+        closeCallback?.error(error)
     }
 
     private fun notifyConnectionSuccess() {
-        if (connectCallback != null) {
-            val result = PluginResult(PluginResult.Status.OK)
-            result.keepCallback = true
-            connectCallback?.sendPluginResult(result)
-        }
+        val result = PluginResult(PluginResult.Status.OK)
+        result.keepCallback = true
+        connectCallback?.sendPluginResult(result)
     }
 
     private fun sendRawDataToSubscriber(data: ByteArray?) {
         if (data != null && data.isNotEmpty()) {
             val result = PluginResult(PluginResult.Status.OK, data)
             result.keepCallback = true
-            rawDataAvailableCallback?.sendPluginResult(result)
+            onDataAvailableCallback?.sendPluginResult(result)
         }
     }
 

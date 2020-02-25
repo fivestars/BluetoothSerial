@@ -13,9 +13,8 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
 
-class BluetoothSerialService(handler: Handler) {
+class BluetoothSerialService() {
     private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-    private val handler: Handler
     private var insecureAcceptThread: AcceptThread? = null
     private var connectThread: ConnectThread? = null
     private var connectedThread: ConnectedThread? = null
@@ -67,7 +66,7 @@ class BluetoothSerialService(handler: Handler) {
      * @param secure Socket Security type - Secure (true) , Insecure (false)
      */
     @Synchronized
-    fun connect(device: BluetoothDevice, secure: Boolean) {
+    fun connect(device: BluetoothDevice) {
         if (BuildConfig.DEBUG) Log.d(TAG, "connect to: $device")
         // Cancel any thread attempting to make a connection
         if (mState == STATE_CONNECTING) {
@@ -162,26 +161,12 @@ class BluetoothSerialService(handler: Handler) {
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
     private fun connectionFailed() { // Send a failure message back to the Activity
-        val msg = handler.obtainMessage(BluetoothSerial.MESSAGE_TOAST)
-        val bundle = Bundle()
-        bundle.putString(BluetoothSerial.TOAST, "Unable to connect to device")
-        msg.data = bundle
-        handler.sendMessage(msg)
-        // Start the service over to restart listening mode
-        start()
     }
 
     /**
      * Indicate that the connection was lost and notify the UI Activity.
      */
     private fun connectionLost() { // Send a failure message back to the Activity
-        val msg = handler.obtainMessage(BluetoothSerial.MESSAGE_TOAST)
-        val bundle = Bundle()
-        bundle.putString(BluetoothSerial.TOAST, "Device connection was lost")
-        msg.data = bundle
-        handler.sendMessage(msg)
-        // Start the service over to restart listening mode
-        start()
     }
 
     /**
@@ -261,8 +246,6 @@ class BluetoothSerialService(handler: Handler) {
         override fun run() {
             Log.i(TAG, "BEGIN mConnectThread SocketType:$mSocketType")
             name = "ConnectThread$mSocketType"
-            // Always cancel discovery because it will slow down a connection
-            bluetoothAdapter.cancelDiscovery()
             // Make a connection to the BluetoothSocket
             try { // This is a blocking call and will only return on a successful connection or an exception
                 Log.i(TAG, "Connecting to socket...")
@@ -411,6 +394,5 @@ class BluetoothSerialService(handler: Handler) {
      */
     init {
         mState = STATE_NONE
-        this.handler = handler
     }
 }
