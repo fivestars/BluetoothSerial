@@ -23,10 +23,8 @@ class BluetoothSerial : CordovaPlugin() {
     private var closeCallback: CallbackContext? = null
     private var dataAvailableCallback: CallbackContext? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
-
     private val bluetoothSerialService: BluetoothSerialService = BluetoothSerialService()
-    var buffer = StringBuffer()
-    private var permissionCallback: CallbackContext? = null
+
     @Throws(JSONException::class)
     override fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
         LOG.d(TAG, "action = $action")
@@ -88,50 +86,6 @@ class BluetoothSerial : CordovaPlugin() {
     }
 
     @Throws(JSONException::class)
-    private fun discoverUnpairedDevices(callbackContext: CallbackContext?) {
-        val ddc: CallbackContext? = deviceDiscoveredCallback
-        val discoverReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-            private val unpairedDevices = JSONArray()
-            override fun onReceive(context: Context, intent: Intent) {
-                val action = intent.action
-                if (BluetoothDevice.ACTION_FOUND == action) {
-                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-                    try {
-                        val o = deviceToJSON(device)
-                        unpairedDevices.put(o)
-                        if (ddc != null) {
-                            val res = PluginResult(PluginResult.Status.OK, o)
-                            res.keepCallback = true
-                            ddc.sendPluginResult(res)
-                        }
-                    } catch (e: JSONException) { // This shouldn't happen, log and ignore
-                        Log.e(TAG, "Problem converting device to JSON", e)
-                    }
-                } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED == action) {
-                    callbackContext?.success(unpairedDevices)
-                    cordova.activity.unregisterReceiver(this)
-                }
-            }
-        }
-        val activity: Activity = cordova.activity
-        activity.registerReceiver(discoverReceiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
-        activity.registerReceiver(discoverReceiver, IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED))
-        bluetoothAdapter!!.startDiscovery()
-    }
-
-    @Throws(JSONException::class)
-    private fun deviceToJSON(device: BluetoothDevice): JSONObject {
-        val json = JSONObject()
-        json.put("name", device.name)
-        json.put("address", device.address)
-        json.put("id", device.address)
-        if (device.bluetoothClass != null) {
-            json.put("class", device.bluetoothClass.deviceClass)
-        }
-        return json
-    }
-
-    @Throws(JSONException::class)
     private fun connect(args: CordovaArgs, callbackContext: CallbackContext) {
         val macAddress: String = args.getString(0)
         val device = bluetoothAdapter!!.getRemoteDevice(macAddress)
@@ -143,7 +97,6 @@ class BluetoothSerial : CordovaPlugin() {
             callbackContext.error("Could not connect to $macAddress")
         }
     }
-
 
     private fun notifyConnectionLost(error: String?) {
         closeCallback?.error(error)
@@ -159,68 +112,14 @@ class BluetoothSerial : CordovaPlugin() {
         if (data != null && data.isNotEmpty()) {
             val result = PluginResult(PluginResult.Status.OK, data)
             result.keepCallback = true
-            onDataAvailableCallback?.sendPluginResult(result)
+            dataAvailableCallback?.sendPluginResult(result)
         }
     }
 
     @Throws(JSONException::class)
     override fun onRequestPermissionResult(requestCode: Int, permissions: Array<String?>?,
                                            grantResults: IntArray) {
-        for (result in grantResults) {
-            if (result == PackageManager.PERMISSION_DENIED) {
-                LOG.d(TAG, "User *rejected* location permission")
-                permissionCallback?.sendPluginResult(PluginResult(
-                        PluginResult.Status.ERROR,
-                        "Location permission is required to discover unpaired devices.")
-                )
-                return
-            }
-        }
-        when (requestCode) {
-            CHECK_PERMISSIONS_REQ_CODE -> {
-                LOG.d(TAG, "User granted location permission")
-                discoverUnpairedDevices(permissionCallback)
-            }
-        }
-    }
 
-    private val bluetoothStatusReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            if (action == BluetoothAdapter.ACTION_STATE_CHANGED) {
-                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,
-                        BluetoothAdapter.ERROR)
-                when (state) {
-                    BluetoothAdapter.STATE_OFF -> {
-                    }
-                    BluetoothAdapter.STATE_TURNING_OFF -> {
-                    }
-                    BluetoothAdapter.STATE_ON -> {
-                        // Bluetooth has been on
-                        Log.d(TAG, "User enabled Bluetooth")
-                        if (enableBluetoothCallback != null) {
-                            enableBluetoothCallback?.success()
-                        }
-                        cleanUpEnableBluetooth()
-                    }
-                    BluetoothAdapter.STATE_TURNING_ON -> {
-                    }
-                    else -> {
-                        Log.d(TAG, "Error enabling bluetooth")
-                        if (enableBluetoothCallback != null) {
-                            enableBluetoothCallback?.error("Error enabling bluetooth")
-                        }
-                        cleanUpEnableBluetooth()
-                    }
-                }
-            }
-        }
-    }
-
-    private fun cleanUpEnableBluetooth() {
-        enableBluetoothCallback = null
-        val activity: Activity = cordova.activity
-        activity.unregisterReceiver(bluetoothStatusReceiver)
     }
 
     private fun getBluetoothMacAddress(): String? {
