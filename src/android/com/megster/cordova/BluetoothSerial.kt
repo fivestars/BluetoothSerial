@@ -384,15 +384,16 @@ class BluetoothSerial : CordovaPlugin() {
     }
 
     private fun getBluetoothMacAddress(): String? {
-        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
         var bluetoothMacAddress: String? = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                val serviceField: Field = bluetoothAdapter.javaClass.getDeclaredField("mService")
-                serviceField.isAccessible = true
-                val btManagerService: Any = serviceField.get(bluetoothAdapter)
-                bluetoothMacAddress =
-                        btManagerService.javaClass.getMethod("getAddress").invoke(btManagerService) as String
+                val serviceField: Field? = bluetoothAdapter?.javaClass?.getDeclaredField("mService")
+                serviceField?.isAccessible = true
+                val btManagerService: Any? = serviceField?.get(bluetoothAdapter)
+                btManagerService?.run {
+                    bluetoothMacAddress =
+                            javaClass.getMethod("getAddress").invoke(btManagerService) as String
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Unable to retrieve Bluetooth MAC Address: $e")
             }
