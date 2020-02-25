@@ -184,6 +184,7 @@ class BluetoothSerial : CordovaPlugin() {
             } else {
                 bluetoothAdapter?.address
             }
+
             macAddress?.run {
                 callbackContext.success(this)
             } ?: callbackContext.error("Unable to determine Bluetooth MAC address")
