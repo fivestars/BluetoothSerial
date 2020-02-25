@@ -22,6 +22,7 @@ import org.apache.cordova.PluginResult
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.lang.reflect.Field
 
 /**
  * PhoneGap Plugin for Serial Communication over Bluetooth
@@ -179,11 +180,7 @@ class BluetoothSerial : CordovaPlugin() {
             discoverIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, discoverableDuration)
             cordova.getActivity().startActivity(discoverIntent)
         } else if (action == GET_ADDRESS) {
-            val macAddress: String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Settings.Secure.getString(cordova.getActivity().contentResolver, "bluetooth_address")
-            } else {
-                bluetoothAdapter?.address
-            }
+            val macAddress = getBluetoothMacAddress()
 
             macAddress?.run {
                 callbackContext.success(this)
@@ -384,6 +381,25 @@ class BluetoothSerial : CordovaPlugin() {
         enableBluetoothCallback = null
         val activity: Activity = cordova.getActivity()
         activity.unregisterReceiver(bluetoothStatusReceiver)
+    }
+
+    private fun getBluetoothMacAddress(): String? {
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        var bluetoothMacAddress: String? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val serviceField: Field = bluetoothAdapter.javaClass.getDeclaredField("mService")
+                serviceField.isAccessible = true
+                val btManagerService: Any = serviceField.get(bluetoothAdapter)
+                bluetoothMacAddress =
+                        btManagerService.javaClass.getMethod("getAddress").invoke(btManagerService) as String
+            } catch (e: Exception) {
+                Log.e(TAG, "Unable to retrieve Bluetooth MAC Address: $e")
+            }
+        } else {
+            bluetoothMacAddress = bluetoothAdapter.address
+        }
+        return bluetoothMacAddress
     }
 
     var bluetoothIntentFilter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
