@@ -398,7 +398,7 @@ class BluetoothSerial : CordovaPlugin() {
                 Log.e(TAG, "Unable to retrieve Bluetooth MAC Address: $e")
             }
         } else {
-            bluetoothMacAddress = bluetoothAdapter.address
+            bluetoothMacAddress = bluetoothAdapter?.address
         }
         return bluetoothMacAddress
     }
