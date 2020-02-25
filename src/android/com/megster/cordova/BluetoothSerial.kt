@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Handler
 import android.os.Message
 import android.provider.Settings
@@ -178,9 +179,14 @@ class BluetoothSerial : CordovaPlugin() {
             discoverIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, discoverableDuration)
             cordova.getActivity().startActivity(discoverIntent)
         } else if (action == GET_ADDRESS) {
-            bluetoothAdapter?.run {
-                callbackContext.success(address)
-            } ?: callbackContext.error("Unable to access BluetoothAdapter")
+            val macAddress: String? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Settings.Secure.getString(cordova.getActivity().contentResolver, "bluetooth_address")
+            } else {
+                bluetoothAdapter?.address
+            }
+            macAddress?.run {
+                callbackContext.success(this)
+            } ?: callbackContext.error("Unable to determine Bluetooth MAC address")
         } else {
             validAction = false
         }
