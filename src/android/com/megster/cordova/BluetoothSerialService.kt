@@ -334,7 +334,7 @@ object BluetoothSerialService {
 // when / if we read less than its size.
                     if (bytes > 0) {
                         val rawdata = Arrays.copyOf(buffer, bytes)
-                        Log.e(TAG, "The raw data is: $rawdata");
+                        Log.e(TAG, "The raw data is: $data");
                     }
                 } catch (e: IOException) {
                     Log.e(TAG, "disconnected", e)
