@@ -329,13 +329,11 @@ object BluetoothSerialService {
                     bytes = mmInStream!!.read(buffer)
                     val data = String(buffer, 0, bytes)
                     // Send the new data String to the UI Activity
-                    handler.obtainMessage(BluetoothSerial.MESSAGE_READ, data).sendToTarget()
                     // Send the raw bytestream to the UI Activity.
 // We make a copy because the full array can have extra data at the end
 // when / if we read less than its size.
                     if (bytes > 0) {
                         val rawdata = Arrays.copyOf(buffer, bytes)
-                        handler.obtainMessage(BluetoothSerial.MESSAGE_READ_RAW, rawdata).sendToTarget()
                     }
                 } catch (e: IOException) {
                     Log.e(TAG, "disconnected", e)

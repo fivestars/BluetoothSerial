@@ -1,8 +1,7 @@
 /*global cordova*/
 module.exports = {
 
-    // Android only - see http://goo.gl/1mFjZY
-    connectInsecure: function (macAddress, success, failure) {
+    connect: function (macAddress, success, failure) {
         cordova.exec(success, failure, "BluetoothSerial", "connectInsecure", [macAddress]);
     },
 
@@ -12,7 +11,7 @@ module.exports = {
 
     // writes data to the bluetooth serial port
     // data can be an ArrayBuffer, string, integer array, or Uint8Array
-    write: function (data, success, failure) {
+    send: function (data, success, failure) {
 
         // convert to ArrayBuffer
         if (typeof data === 'string') {
@@ -30,10 +29,6 @@ module.exports = {
     // calls the success callback when new data is available with an ArrayBuffer
     listen: function (success, failure) {
         cordova.exec(success, failure, "BluetoothSerial", "listen", []);
-    },
-
-    discoverUnpaired: function (success, failure) {
-        cordova.exec(success, failure, "BluetoothSerial", "discoverUnpaired", []);
     },
 
     getAddress: function (success, failure) {

@@ -23,7 +23,6 @@ class BluetoothSerial : CordovaPlugin() {
     private var closeCallback: CallbackContext? = null
     private var dataAvailableCallback: CallbackContext? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
-    private val bluetoothSerialService: BluetoothSerialService = BluetoothSerialService()
 
     @Throws(JSONException::class)
     override fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
@@ -145,11 +144,10 @@ class BluetoothSerial : CordovaPlugin() {
     var bluetoothIntentFilter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
 
     companion object {
-        // actions
-        private const val CONNECT = "connectInsecure"
+        private const val CONNECT = "connect"
         private const val LISTEN = "listen"
         private const val DISCONNECT = "disconnect"
-        private const val SEND = "write"
+        private const val SEND = "send"
         private const val GET_ADDRESS = "getAddress"
         private const val REGISTER_DATA_CALLBACK = "registerDataCallback"
         private const val REGISTER_CONNECT_CALLBACK = "registerConnectCallback"
