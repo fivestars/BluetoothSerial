@@ -13,7 +13,21 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
 
-class BluetoothSerialService() {
+object BluetoothSerialService {
+
+    // Debugging
+    private const val TAG = "BluetoothSerialService"
+    private const val D = true
+    // Name for the SDP record when creating server socket
+    private const val NAME_INSECURE = "PhoneGapBluetoothSerialServiceInSecure"
+    // Unique UUID for this application
+    private val MY_UUID_INSECURE = UUID.fromString("77718142-B389-4772-93BD-52BDBB2C0777")
+    // Constants that indicate the current connection state
+    const val STATE_NONE = 0 // we're doing nothing
+    const val STATE_LISTEN = 1 // now listening for incoming connections
+    const val STATE_CONNECTING = 2 // now initiating an outgoing connection
+    const val STATE_CONNECTED = 3 // now connected to a remote device
+
     private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
     private var insecureAcceptThread: AcceptThread? = null
     private var connectThread: ConnectThread? = null
@@ -33,9 +47,14 @@ class BluetoothSerialService() {
         private set(state) {
             if (BuildConfig.DEBUG) Log.d(TAG, "setState() $mState -> $state")
             mState = state
-            // Give the new state to the Handler so the UI Activity can update
-            handler.obtainMessage(BluetoothSerial.MESSAGE_STATE_CHANGE, state, -1).sendToTarget()
         }
+
+    /**
+     * Constructor. Prepares a new BluetoothSerial session.
+     */
+    init {
+        mState = STATE_NONE
+    }
 
     /**
      * Start the chat service. Specifically start AcceptThread to begin a
@@ -111,12 +130,6 @@ class BluetoothSerialService() {
         // Start the thread to manage the connection and perform transmissions
         connectedThread = ConnectedThread(socket, socketType)
         connectedThread!!.start()
-        // Send the name of the connected device back to the UI Activity
-        val msg = handler.obtainMessage(BluetoothSerial.MESSAGE_DEVICE_NAME)
-        val bundle = Bundle()
-        bundle.putString(BluetoothSerial.DEVICE_NAME, device.name)
-        msg.data = bundle
-        handler.sendMessage(msg)
         state = STATE_CONNECTED
     }
 
@@ -149,7 +162,7 @@ class BluetoothSerialService() {
     fun write(out: ByteArray?) { // Create temporary object
         var r: ConnectedThread? = null
         // Synchronize a copy of the ConnectedThread
-        synchronized(this) {
+        synchronized(BluetoothSerialService) {
             if (mState != STATE_CONNECTED) return
             r = connectedThread
         }
@@ -174,7 +187,7 @@ class BluetoothSerialService() {
      * like a server-side client. It runs until a connection is accepted
      * (or until cancelled).
      */
-    private inner class AcceptThread(secure: Boolean) : Thread() {
+    private class AcceptThread(secure: Boolean) : Thread() {
         // The local server socket
         private val mmServerSocket: BluetoothServerSocket?
         private val mSocketType: String
@@ -193,7 +206,7 @@ class BluetoothSerialService() {
                 }
                 // If a connection was accepted
                 if (socket != null) {
-                    synchronized(this@BluetoothSerialService) {
+                    synchronized(this) {
                         when (mState) {
                             STATE_LISTEN, STATE_CONNECTING ->  // Situation normal. Start the connected thread.
                                 connected(socket, socket.remoteDevice,
@@ -240,7 +253,7 @@ class BluetoothSerialService() {
      * with a device. It runs straight through; the connection either
      * succeeds or fails.
      */
-    private inner class ConnectThread(private val mmDevice: BluetoothDevice) : Thread() {
+    private class ConnectThread(private val mmDevice: BluetoothDevice) : Thread() {
         private /*final*/  var mmSocket: BluetoothSocket?
         private val mSocketType: String
         override fun run() {
@@ -272,7 +285,7 @@ class BluetoothSerialService() {
                 }
             }
             // Reset the ConnectThread because we're done
-            synchronized(this@BluetoothSerialService) { connectThread = null }
+            synchronized(BluetoothSerialService) { connectThread = null }
             // Start the connected thread
             connected(mmSocket, mmDevice, mSocketType)
         }
@@ -302,7 +315,7 @@ class BluetoothSerialService() {
      * This thread runs during a connection with a remote device.
      * It handles all incoming and outgoing transmissions.
      */
-    private inner class ConnectedThread(socket: BluetoothSocket?, socketType: String) : Thread() {
+    private class ConnectedThread(socket: BluetoothSocket?, socketType: String) : Thread() {
         private val mmSocket: BluetoothSocket?
         private val mmInStream: InputStream?
         private val mmOutStream: OutputStream?
@@ -328,7 +341,7 @@ class BluetoothSerialService() {
                     Log.e(TAG, "disconnected", e)
                     connectionLost()
                     // Start the service over to restart listening mode
-                    this@BluetoothSerialService.start()
+                    BluetoothSerialService.start()
                     break
                 }
             }
@@ -342,7 +355,6 @@ class BluetoothSerialService() {
             try {
                 mmOutStream!!.write(buffer)
                 // Share the sent message back to the UI Activity
-                handler.obtainMessage(BluetoothSerial.MESSAGE_WRITE, -1, -1, buffer).sendToTarget()
             } catch (e: IOException) {
                 Log.e(TAG, "Exception during write", e)
             }
@@ -373,26 +385,4 @@ class BluetoothSerialService() {
         }
     }
 
-    companion object {
-        // Debugging
-        private const val TAG = "BluetoothSerialService"
-        private const val D = true
-        // Name for the SDP record when creating server socket
-        private const val NAME_INSECURE = "PhoneGapBluetoothSerialServiceInSecure"
-        // Unique UUID for this application
-        private val MY_UUID_INSECURE = UUID.fromString("77718142-B389-4772-93BD-52BDBB2C0777")
-        // Constants that indicate the current connection state
-        const val STATE_NONE = 0 // we're doing nothing
-        const val STATE_LISTEN = 1 // now listening for incoming connections
-        const val STATE_CONNECTING = 2 // now initiating an outgoing connection
-        const val STATE_CONNECTED = 3 // now connected to a remote device
-    }
-
-    /**
-     * Constructor. Prepares a new BluetoothSerial session.
-     * @param handler  A Handler to send messages back to the UI Activity
-     */
-    init {
-        mState = STATE_NONE
-    }
 }
