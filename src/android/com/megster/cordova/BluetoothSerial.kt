@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter
 import com.megster.cordova.BluetoothSerialService.ClosedCallback
 import com.megster.cordova.BluetoothSerialService.ConnectedCallback
 import com.megster.cordova.BluetoothSerialService.DataCallback
+import com.megster.cordova.BluetoothSerialService.STATE_CONNECTED
 import org.apache.cordova.*
 import org.json.JSONException
 import org.json.JSONObject
@@ -18,17 +19,15 @@ class BluetoothSerial : CordovaPlugin() {
     private var connectCallback: CallbackContext? = null
     private var closeCallback: CallbackContext? = null
     private var dataAvailableCallback: CallbackContext? = null
-    private var bluetoothAdapter: BluetoothAdapter? = null
+    private val bluetoothAdapter: BluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
     @Throws(JSONException::class)
     override fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
         LOG.d(TAG, "action = $action")
-        if (bluetoothAdapter == null) {
-            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-        }
         var validAction = true
         when (action) {
             CONNECT -> {
+                enableBluetoothIfNecessary()
                 connect(args, callbackContext)
             }
             DISCONNECT -> {
@@ -41,12 +40,7 @@ class BluetoothSerial : CordovaPlugin() {
                 callbackContext.success()
             }
             LISTEN -> {
-                try {
-                    BluetoothSerialService.start()
-                    callbackContext.success()
-                } catch (e: Exception) {
-                    callbackContext.error(e.toString())
-                }
+                listen(callbackContext)
             }
             GET_ADDRESS -> {
                 bluetoothAdapter?.run {
@@ -91,6 +85,26 @@ class BluetoothSerial : CordovaPlugin() {
             }
         }
         return validAction
+    }
+
+    private fun listen(callbackContext: CallbackContext) {
+        if (BluetoothSerialService.state == STATE_CONNECTED) {
+            callbackContext.error("Already connected")
+        } else {
+            enableBluetoothIfNecessary()
+            try {
+                BluetoothSerialService.start()
+                callbackContext.success()
+            } catch (e: Exception) {
+                callbackContext.error(e.toString())
+            }
+        }
+    }
+
+    private fun enableBluetoothIfNecessary() {
+        if (!bluetoothAdapter.isEnabled) {
+            bluetoothAdapter.enable()
+        }
     }
 
     override fun onDestroy() {
