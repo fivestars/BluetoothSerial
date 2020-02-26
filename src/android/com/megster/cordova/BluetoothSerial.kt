@@ -9,8 +9,6 @@ import com.megster.cordova.BluetoothSerialService.DataCallback
 import com.megster.cordova.BluetoothSerialService.STATE_CONNECTED
 import org.apache.cordova.*
 import org.json.JSONException
-import org.json.JSONObject
-import java.lang.reflect.Field
 import java.lang.Exception
 import java.lang.reflect.Field
 
@@ -67,9 +65,7 @@ class BluetoothSerial : CordovaPlugin() {
                         sendRawDataToSubscriber(data)
                     }
                 })
-                val result = PluginResult(PluginResult.Status.NO_RESULT)
-                result.keepCallback = true
-                callbackContext.sendPluginResult(result)
+                keepCallbackAndSendNoResult(callbackContext)
             }
             REGISTER_CONNECT_CALLBACK -> {
                 connectCallback = callbackContext
@@ -78,9 +74,7 @@ class BluetoothSerial : CordovaPlugin() {
                         notifyConnectionSuccess()
                     }
                 })
-                val result = PluginResult(PluginResult.Status.NO_RESULT)
-                result.keepCallback = true
-                callbackContext.sendPluginResult(result)
+                keepCallbackAndSendNoResult(callbackContext)
             }
             REGISTER_CLOSE_CALLBACK -> {
                 closeCallback = callbackContext
@@ -89,9 +83,7 @@ class BluetoothSerial : CordovaPlugin() {
                         notifyConnectionLost()
                     }
                 })
-                val result = PluginResult(PluginResult.Status.NO_RESULT)
-                result.keepCallback = true
-                callbackContext.sendPluginResult(result)
+                keepCallbackAndSendNoResult(callbackContext)
             }
             else -> {
                 validAction = false
@@ -118,6 +110,12 @@ class BluetoothSerial : CordovaPlugin() {
         if (!bluetoothAdapter.isEnabled) {
             bluetoothAdapter.enable()
         }
+    }
+
+    private fun keepCallbackAndSendNoResult(callbackContext: CallbackContext) {
+        val result = PluginResult(PluginResult.Status.NO_RESULT)
+        result.keepCallback = true
+        callbackContext.sendPluginResult(result)
     }
 
     override fun onDestroy() {
