@@ -23,7 +23,7 @@ module.exports = {
             data = data.buffer;
         }
 
-        cordova.exec(success, failure, "BluetoothSerial", "write", [data]);
+        cordova.exec(success, failure, "BluetoothSerial", "send", [data]);
     },
 
     // calls the success callback when new data is available with an ArrayBuffer

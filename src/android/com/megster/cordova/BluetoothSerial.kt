@@ -87,7 +87,7 @@ class BluetoothSerial : CordovaPlugin() {
     @Throws(JSONException::class)
     private fun connect(args: CordovaArgs, callbackContext: CallbackContext) {
         val macAddress: String = args.getString(0)
-        val device = bluetoothAdapter!!.getRemoteDevice(macAddress)
+        val device = bluetoothAdapter?.getRemoteDevice(macAddress)
         if (device != null) {
             BluetoothSerialService.connect(device)
             val result = PluginResult(PluginResult.Status.NO_RESULT)
