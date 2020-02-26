@@ -31,6 +31,8 @@ object BluetoothSerialService {
     private var mState: Int
     private var connectedCallback: ConnectedCallback? = null
     private var closedCallback: ClosedCallback? = null
+    private var dataCallback: DataCallback? = null
+
 
     /**
      * Return the current connection state.  */// Give the new state to the Handler so the UI Activity can update
@@ -113,7 +115,7 @@ object BluetoothSerialService {
      * @param device  The BluetoothDevice that has been connected
      */
     @Synchronized
-    fun connected(socket: BluetoothSocket?, device: BluetoothDevice, socketType: String) {
+    fun connected(socket: BluetoothSocket?, socketType: String) {
         if (BuildConfig.DEBUG) Log.d(LOG_TAG, "connected, Socket Type:$socketType")
         // Cancel the thread that completed the connection
         if (connectThread != null) {
@@ -203,8 +205,7 @@ object BluetoothSerialService {
                     synchronized(this) {
                         when (mState) {
                             STATE_LISTEN, STATE_CONNECTING ->  // Situation normal. Start the connected thread.
-                                connected(socket, socket.remoteDevice,
-                                        mSocketType)
+                                connected(socket, mSocketType)
                             STATE_NONE, STATE_CONNECTED ->  // Either not ready or already connected. Terminate new socket.
                                 try {
                                     socket.close()
@@ -281,7 +282,7 @@ object BluetoothSerialService {
             // Reset the ConnectThread because we're done
             synchronized(BluetoothSerialService) { connectThread = null }
             // Start the connected thread
-            connected(mmSocket, mmDevice, mSocketType)
+            connected(mmSocket, mSocketType)
         }
 
         fun cancel() {
@@ -321,14 +322,12 @@ object BluetoothSerialService {
             while (true) {
                 try { // Read from the InputStream
                     bytes = mmInStream!!.read(buffer)
-                    val data = String(buffer, 0, bytes)
-                    // Send the new data String to the UI Activity
-                    // Send the raw bytestream to the UI Activity.
+                    // Send the raw bytestream to the dataCallback if it exists.
 // We make a copy because the full array can have extra data at the end
 // when / if we read less than its size.
                     if (bytes > 0) {
-                        val rawdata = Arrays.copyOf(buffer, bytes)
-                        Log.e(LOG_TAG, "The raw data is: $data");
+                        val rawData = Arrays.copyOf(buffer, bytes)
+                        dataCallback?.onData(rawData)
                     }
                 } catch (e: IOException) {
                     Log.e(LOG_TAG, "disconnected", e)
@@ -385,11 +384,19 @@ object BluetoothSerialService {
         fun closed()
     }
 
+    interface DataCallback {
+        fun onData(data: ByteArray)
+    }
+
     fun registerConnectedCallback(connectedCallback: ConnectedCallback) {
         this.connectedCallback = connectedCallback
     }
 
     fun registerClosedCallback(closedCallback: ClosedCallback) {
         this.closedCallback = closedCallback
+    }
+
+    fun registerDataCallback(dataCallback: DataCallback) {
+        this.dataCallback = dataCallback;
     }
 }

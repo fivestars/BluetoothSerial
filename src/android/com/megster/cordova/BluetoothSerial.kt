@@ -3,6 +3,7 @@ package com.megster.cordova
 import android.bluetooth.BluetoothAdapter
 import com.megster.cordova.BluetoothSerialService.ClosedCallback
 import com.megster.cordova.BluetoothSerialService.ConnectedCallback
+import com.megster.cordova.BluetoothSerialService.DataCallback
 import org.apache.cordova.*
 import org.json.JSONException
 import org.json.JSONObject
@@ -54,6 +55,11 @@ class BluetoothSerial : CordovaPlugin() {
             }
             REGISTER_DATA_CALLBACK -> {
                 dataAvailableCallback = callbackContext
+                BluetoothSerialService.registerDataCallback(object : DataCallback {
+                    override fun onData(data: ByteArray) {
+                        sendRawDataToSubscriber(data)
+                    }
+                })
                 val result = PluginResult(PluginResult.Status.NO_RESULT)
                 result.keepCallback = true
                 callbackContext.sendPluginResult(result)
@@ -117,7 +123,7 @@ class BluetoothSerial : CordovaPlugin() {
 
     private fun sendRawDataToSubscriber(data: ByteArray?) {
         if (data != null && data.isNotEmpty()) {
-            val result = PluginResult(PluginResult.Status.OK, data)
+            val result = PluginResult(PluginResult.Status.OK, data.toString(Charsets.UTF_8))
             result.keepCallback = true
             dataAvailableCallback?.sendPluginResult(result)
         }
