@@ -36,16 +36,16 @@ class BluetoothSerial : CordovaPlugin() {
                 connect(args, callbackContext)
             }
             DISCONNECT -> {
-                bluetoothSerialService.stop()
+                BluetoothSerialService.stop()
                 callbackContext.success()
             }
             SEND -> {
                 val data: ByteArray = args.getArrayBuffer(0)
-                bluetoothSerialService.write(data)
+                BluetoothSerialService.write(data)
                 callbackContext.success()
             }
             LISTEN -> {
-                bluetoothSerialService.start()
+                BluetoothSerialService.start()
                 val result = PluginResult(PluginResult.Status.NO_RESULT)
                 callbackContext.sendPluginResult(result)
             }
@@ -81,7 +81,7 @@ class BluetoothSerial : CordovaPlugin() {
 
     override fun onDestroy() {
         super.onDestroy()
-        bluetoothSerialService.stop()
+        BluetoothSerialService.stop()
     }
 
     @Throws(JSONException::class)
@@ -89,7 +89,7 @@ class BluetoothSerial : CordovaPlugin() {
         val macAddress: String = args.getString(0)
         val device = bluetoothAdapter!!.getRemoteDevice(macAddress)
         if (device != null) {
-            bluetoothSerialService.connect(device)
+            BluetoothSerialService.connect(device)
             val result = PluginResult(PluginResult.Status.NO_RESULT)
             callbackContext.sendPluginResult(result)
         } else {
