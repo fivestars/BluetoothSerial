@@ -1,4 +1,3 @@
-cordova.define("cordova-plugin-bluetooth-serial.bluetoothSerial", function(require, exports, module) {
 /*global cordova*/
 module.exports = {
 
@@ -56,5 +55,3 @@ var stringToArrayBuffer = function(str) {
     }
     return ret.buffer;
 };
-
-});
