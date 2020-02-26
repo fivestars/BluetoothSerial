@@ -147,7 +147,7 @@ class BluetoothSerial : CordovaPlugin() {
     companion object {
         // actions
         private const val CONNECT = "connectInsecure"
-        private const val LISTEN = "subscribeRaw"
+        private const val LISTEN = "listen"
         private const val DISCONNECT = "disconnect"
         private const val SEND = "write"
         private const val GET_ADDRESS = "getAddress"
