@@ -195,7 +195,7 @@ object BluetoothSerialService {
             while (mState != STATE_CONNECTED) {
                 socket = try { // This is a blocking call and will only return on a
 // successful connection or an exception
-                    mmServerSocket!!.accept()
+                    mmServerSocket?.accept()
                 } catch (e: IOException) {
                     Log.e(LOG_TAG, "Socket Type: " + mSocketType + "accept() failed", e)
                     break
