@@ -31,19 +31,27 @@ class BluetoothSerial : CordovaPlugin() {
                 connect(args, callbackContext)
             }
             DISCONNECT -> {
-                BluetoothSerialService.stop()
-                callbackContext.success()
+                try {
+                    BluetoothSerialService.stop()
+                    callbackContext.success()
+                } catch (e: Exception) {
+                    callbackContext.error(e.toString())
+                }
             }
             SEND -> {
-                val data: ByteArray = args.getArrayBuffer(0)
-                BluetoothSerialService.write(data)
-                callbackContext.success()
+                try {
+                    val data: ByteArray = args.getArrayBuffer(0)
+                    BluetoothSerialService.write(data)
+                    callbackContext.success()
+                } catch (e: Exception) {
+                    callbackContext.error(e.toString())
+                }
             }
             LISTEN -> {
                 listen(callbackContext)
             }
             GET_ADDRESS -> {
-                bluetoothAdapter?.run {
+                bluetoothAdapter.run {
                     callbackContext.success(address)
                 } ?: callbackContext.error("Unable to access BluetoothAdapter")
             }
