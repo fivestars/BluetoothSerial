@@ -2,7 +2,7 @@
 module.exports = {
 
     connect: function (macAddress, success, failure) {
-        cordova.exec(success, failure, "BluetoothSerial", "connectInsecure", [macAddress]);
+        cordova.exec(success, failure, "BluetoothSerial", "listen", [macAddress]);
     },
 
     disconnect: function (success, failure) {
