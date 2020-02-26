@@ -2,7 +2,7 @@
 module.exports = {
 
     connect: function (macAddress, success, failure) {
-        cordova.exec(success, failure, "BluetoothSerial", "listen", [macAddress]);
+        cordova.exec(success, failure, "BluetoothSerial", "connect", [macAddress]);
     },
 
     disconnect: function (success, failure) {
