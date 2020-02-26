@@ -1,6 +1,8 @@
 package com.megster.cordova
 
 import android.bluetooth.BluetoothAdapter
+import android.os.Build
+import android.util.Log
 import com.megster.cordova.BluetoothSerialService.ClosedCallback
 import com.megster.cordova.BluetoothSerialService.ConnectedCallback
 import com.megster.cordova.BluetoothSerialService.DataCallback
@@ -10,6 +12,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.lang.reflect.Field
 import java.lang.Exception
+import java.lang.reflect.Field
 
 
 /**
@@ -51,9 +54,11 @@ class BluetoothSerial : CordovaPlugin() {
                 listen(callbackContext)
             }
             GET_ADDRESS -> {
-                bluetoothAdapter.run {
-                    callbackContext.success(address)
-                } ?: callbackContext.error("Unable to access BluetoothAdapter")
+                val macAddress = getBluetoothMacAddress()
+
+                macAddress?.run {
+                    callbackContext.success(this)
+                } ?: callbackContext.error("Unable to determine Bluetooth MAC address")
             }
             REGISTER_DATA_CALLBACK -> {
                 dataAvailableCallback = callbackContext
