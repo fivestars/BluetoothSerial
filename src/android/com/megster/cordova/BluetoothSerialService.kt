@@ -334,6 +334,7 @@ object BluetoothSerialService {
 // when / if we read less than its size.
                     if (bytes > 0) {
                         val rawdata = Arrays.copyOf(buffer, bytes)
+                        Log.e(TAG, "The raw data is: $rawdata");
                     }
                 } catch (e: IOException) {
                     Log.e(TAG, "disconnected", e)
@@ -352,7 +353,6 @@ object BluetoothSerialService {
         fun write(buffer: ByteArray?) {
             try {
                 mmOutStream!!.write(buffer)
-                // Share the sent message back to the UI Activity
             } catch (e: IOException) {
                 Log.e(TAG, "Exception during write", e)
             }
