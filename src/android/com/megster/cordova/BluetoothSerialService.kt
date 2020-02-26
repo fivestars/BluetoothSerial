@@ -4,8 +4,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothServerSocket
 import android.bluetooth.BluetoothSocket
-import android.os.Bundle
-import android.os.Handler
 import android.util.Log
 import org.apache.cordova.BuildConfig
 import java.io.IOException
@@ -15,11 +13,9 @@ import java.util.*
 
 object BluetoothSerialService {
 
-    // Debugging
-    private const val TAG = "BluetoothSerialService"
-    private const val D = true
+    private const val LOG_TAG = "BluetoothSerialService"
     // Name for the SDP record when creating server socket
-    private const val NAME_INSECURE = "PhoneGapBluetoothSerialServiceInSecure"
+    private const val NAME_INSECURE = "PhoneGapBluetoothSerialService"
     // Unique UUID for this application
     private val MY_UUID_INSECURE = UUID.fromString("77718142-B389-4772-93BD-52BDBB2C0777")
     // Constants that indicate the current connection state
@@ -33,6 +29,8 @@ object BluetoothSerialService {
     private var connectThread: ConnectThread? = null
     private var connectedThread: ConnectedThread? = null
     private var mState: Int
+    private var connectedCallback: ConnectedCallback? = null
+    private var closedCallback: ClosedCallback? = null
 
     /**
      * Return the current connection state.  */// Give the new state to the Handler so the UI Activity can update
@@ -45,8 +43,12 @@ object BluetoothSerialService {
     var state: Int
         get() = mState
         private set(state) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "setState() $mState -> $state")
+            if (BuildConfig.DEBUG) Log.d(LOG_TAG, "setState() $mState -> $state")
             mState = state
+
+            if (mState == STATE_CONNECTED) {
+                connectedCallback?.connected()
+            }
         }
 
     /**
@@ -61,7 +63,7 @@ object BluetoothSerialService {
      * session in listening (server) mode. Called by the Activity onResume()  */
     @Synchronized
     fun start() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "start")
+        if (BuildConfig.DEBUG) Log.d(LOG_TAG, "start")
         // Cancel any thread attempting to make a connection
         if (connectThread != null) {
             connectThread!!.cancel()
@@ -86,7 +88,7 @@ object BluetoothSerialService {
      */
     @Synchronized
     fun connect(device: BluetoothDevice) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "connect to: $device")
+        if (BuildConfig.DEBUG) Log.d(LOG_TAG, "connect to: $device")
         // Cancel any thread attempting to make a connection
         if (mState == STATE_CONNECTING) {
             if (connectThread != null) {
@@ -112,7 +114,7 @@ object BluetoothSerialService {
      */
     @Synchronized
     fun connected(socket: BluetoothSocket?, device: BluetoothDevice, socketType: String) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "connected, Socket Type:$socketType")
+        if (BuildConfig.DEBUG) Log.d(LOG_TAG, "connected, Socket Type:$socketType")
         // Cancel the thread that completed the connection
         if (connectThread != null) {
             connectThread!!.cancel()
@@ -138,7 +140,7 @@ object BluetoothSerialService {
      */
     @Synchronized
     fun stop() {
-        if (BuildConfig.DEBUG) Log.d(TAG, "stop")
+        if (BuildConfig.DEBUG) Log.d(LOG_TAG, "stop")
         if (connectThread != null) {
             connectThread!!.cancel()
             connectThread = null
@@ -170,16 +172,8 @@ object BluetoothSerialService {
         r?.write(out)
     }
 
-    /**
-     * Indicate that the connection attempt failed and notify the UI Activity.
-     */
-    private fun connectionFailed() { // Send a failure message back to the Activity
-    }
-
-    /**
-     * Indicate that the connection was lost and notify the UI Activity.
-     */
-    private fun connectionLost() { // Send a failure message back to the Activity
+    private fun connectionLost() {
+        closedCallback?.closed()
     }
 
     /**
@@ -192,7 +186,7 @@ object BluetoothSerialService {
         private val mmServerSocket: BluetoothServerSocket?
         private val mSocketType: String
         override fun run() {
-            if (BuildConfig.DEBUG) Log.d(TAG, "Socket Type: " + mSocketType + "BEGIN mAcceptThread" + this)
+            if (BuildConfig.DEBUG) Log.d(LOG_TAG, "Socket Type: " + mSocketType + "BEGIN mAcceptThread" + this)
             name = "AcceptThread$mSocketType"
             var socket: BluetoothSocket?
             // Listen to the server socket if we're not connected
@@ -201,7 +195,7 @@ object BluetoothSerialService {
 // successful connection or an exception
                     mmServerSocket!!.accept()
                 } catch (e: IOException) {
-                    Log.e(TAG, "Socket Type: " + mSocketType + "accept() failed", e)
+                    Log.e(LOG_TAG, "Socket Type: " + mSocketType + "accept() failed", e)
                     break
                 }
                 // If a connection was accepted
@@ -215,23 +209,23 @@ object BluetoothSerialService {
                                 try {
                                     socket.close()
                                 } catch (e: IOException) {
-                                    Log.e(TAG, "Could not close unwanted socket", e)
+                                    Log.e(LOG_TAG, "Could not close unwanted socket", e)
                                 }
                             else ->
-                                Log.v(TAG, "State is: $mState")
+                                Log.v(LOG_TAG, "State is: $mState")
                         }
                     }
                 }
             }
-            if (BuildConfig.DEBUG) Log.i(TAG, "END mAcceptThread, socket Type: $mSocketType")
+            if (BuildConfig.DEBUG) Log.i(LOG_TAG, "END mAcceptThread, socket Type: $mSocketType")
         }
 
         fun cancel() {
-            if (BuildConfig.DEBUG) Log.d(TAG, "Socket Type" + mSocketType + "cancel " + this)
+            if (BuildConfig.DEBUG) Log.d(LOG_TAG, "Socket Type" + mSocketType + "cancel " + this)
             try {
                 mmServerSocket!!.close()
             } catch (e: IOException) {
-                Log.e(TAG, "Socket Type" + mSocketType + "close() of server failed", e)
+                Log.e(LOG_TAG, "Socket Type" + mSocketType + "close() of server failed", e)
             }
         }
 
@@ -242,7 +236,7 @@ object BluetoothSerialService {
             try {
                 tmp = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(NAME_INSECURE, MY_UUID_INSECURE)
             } catch (e: IOException) {
-                Log.e(TAG, "Socket Type: " + mSocketType + "listen() failed", e)
+                Log.e(LOG_TAG, "Socket Type: " + mSocketType + "listen() failed", e)
             }
             mmServerSocket = tmp
         }
@@ -257,30 +251,30 @@ object BluetoothSerialService {
         private /*final*/  var mmSocket: BluetoothSocket?
         private val mSocketType: String
         override fun run() {
-            Log.i(TAG, "BEGIN mConnectThread SocketType:$mSocketType")
+            Log.i(LOG_TAG, "BEGIN mConnectThread SocketType:$mSocketType")
             name = "ConnectThread$mSocketType"
             // Make a connection to the BluetoothSocket
             try { // This is a blocking call and will only return on a successful connection or an exception
-                Log.i(TAG, "Connecting to socket...")
+                Log.i(LOG_TAG, "Connecting to socket...")
                 mmSocket!!.connect()
-                Log.i(TAG, "Connected")
+                Log.i(LOG_TAG, "Connected")
             } catch (e: IOException) {
-                Log.e(TAG, e.toString())
+                Log.e(LOG_TAG, e.toString())
                 // Some 4.1 devices have problems, try an alternative way to connect
 // See https://github.com/don/BluetoothSerial/issues/89
                 try {
-                    Log.i(TAG, "Trying fallback...")
+                    Log.i(LOG_TAG, "Trying fallback...")
                     mmSocket = mmDevice.javaClass.getMethod("createInsecureRfcommSocket", *arrayOf<Class<*>?>(Int::class.javaPrimitiveType)).invoke(mmDevice, 1) as BluetoothSocket
                     mmSocket!!.connect()
-                    Log.i(TAG, "Connected")
+                    Log.i(LOG_TAG, "Connected")
                 } catch (e2: Exception) {
-                    Log.e(TAG, "Couldn't establish a Bluetooth connection.")
+                    Log.e(LOG_TAG, "Couldn't establish a Bluetooth connection.")
                     try {
                         mmSocket!!.close()
                     } catch (e3: IOException) {
-                        Log.e(TAG, "unable to close() $mSocketType socket during connection failure", e3)
+                        Log.e(LOG_TAG, "unable to close() $mSocketType socket during connection failure", e3)
                     }
-                    connectionFailed()
+                    connectionLost()
                     return
                 }
             }
@@ -294,7 +288,7 @@ object BluetoothSerialService {
             try {
                 mmSocket!!.close()
             } catch (e: IOException) {
-                Log.e(TAG, "close() of connect $mSocketType socket failed", e)
+                Log.e(LOG_TAG, "close() of connect $mSocketType socket failed", e)
             }
         }
 
@@ -305,7 +299,7 @@ object BluetoothSerialService {
             try {
                 tmp = mmDevice.createInsecureRfcommSocketToServiceRecord(MY_UUID_INSECURE)
             } catch (e: IOException) {
-                Log.e(TAG, "Socket Type: " + mSocketType + "create() failed", e)
+                Log.e(LOG_TAG, "Socket Type: " + mSocketType + "create() failed", e)
             }
             mmSocket = tmp
         }
@@ -320,7 +314,7 @@ object BluetoothSerialService {
         private val mmInStream: InputStream?
         private val mmOutStream: OutputStream?
         override fun run() {
-            Log.i(TAG, "BEGIN mConnectedThread")
+            Log.i(LOG_TAG, "BEGIN mConnectedThread")
             val buffer = ByteArray(1024)
             var bytes: Int
             // Keep listening to the InputStream while connected
@@ -334,10 +328,10 @@ object BluetoothSerialService {
 // when / if we read less than its size.
                     if (bytes > 0) {
                         val rawdata = Arrays.copyOf(buffer, bytes)
-                        Log.e(TAG, "The raw data is: $data");
+                        Log.e(LOG_TAG, "The raw data is: $data");
                     }
                 } catch (e: IOException) {
-                    Log.e(TAG, "disconnected", e)
+                    Log.e(LOG_TAG, "disconnected", e)
                     connectionLost()
                     // Start the service over to restart listening mode
                     BluetoothSerialService.start()
@@ -354,7 +348,7 @@ object BluetoothSerialService {
             try {
                 mmOutStream!!.write(buffer)
             } catch (e: IOException) {
-                Log.e(TAG, "Exception during write", e)
+                Log.e(LOG_TAG, "Exception during write", e)
             }
         }
 
@@ -362,12 +356,12 @@ object BluetoothSerialService {
             try {
                 mmSocket!!.close()
             } catch (e: IOException) {
-                Log.e(TAG, "close() of connect socket failed", e)
+                Log.e(LOG_TAG, "close() of connect socket failed", e)
             }
         }
 
         init {
-            Log.d(TAG, "create ConnectedThread: $socketType")
+            Log.d(LOG_TAG, "create ConnectedThread: $socketType")
             mmSocket = socket
             var tmpIn: InputStream? = null
             var tmpOut: OutputStream? = null
@@ -376,11 +370,26 @@ object BluetoothSerialService {
                 tmpIn = socket!!.inputStream
                 tmpOut = socket.outputStream
             } catch (e: IOException) {
-                Log.e(TAG, "temp sockets not created", e)
+                Log.e(LOG_TAG, "temp sockets not created", e)
             }
             mmInStream = tmpIn
             mmOutStream = tmpOut
         }
     }
 
+    interface ConnectedCallback {
+        fun connected()
+    }
+
+    interface ClosedCallback {
+        fun closed()
+    }
+
+    fun registerConnectedCallback(connectedCallback: ConnectedCallback) {
+        this.connectedCallback = connectedCallback
+    }
+
+    fun registerClosedCallback(closedCallback: ClosedCallback) {
+        this.closedCallback = closedCallback
+    }
 }

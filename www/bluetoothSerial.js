@@ -1,3 +1,4 @@
+cordova.define("cordova-plugin-bluetooth-serial.bluetoothSerial", function(require, exports, module) {
 /*global cordova*/
 module.exports = {
 
@@ -33,6 +34,18 @@ module.exports = {
 
     getAddress: function (success, failure) {
         cordova.exec(success, failure, "BluetoothSerial", "getAddress", []);
+    },
+
+    registerOnDataCallback: function (success) {
+        cordova.exec(success, null, "BluetoothSerial", "registerDataCallback", []);
+    },
+
+    registerOnConnectCallback: function (success) {
+        cordova.exec(success, null, "BluetoothSerial", "registerConnectCallback", []);
+    },
+
+    registerOnCloseCallback: function (success) {
+        cordova.exec(success, null, "BluetoothSerial", "registerCloseCallback", []);
     }
 };
 
@@ -43,3 +56,5 @@ var stringToArrayBuffer = function(str) {
     }
     return ret.buffer;
 };
+
+});
