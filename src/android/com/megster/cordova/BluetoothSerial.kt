@@ -129,18 +129,21 @@ class BluetoothSerial : CordovaPlugin() {
         val device = bluetoothAdapter?.getRemoteDevice(macAddress)
         if (device != null) {
             BluetoothSerialService.connect(device)
-            val result = PluginResult(PluginResult.Status.NO_RESULT)
-            callbackContext.sendPluginResult(result)
+            connectCallback.success()
         } else {
             callbackContext.error("Could not connect to $macAddress")
         }
     }
 
     private fun notifyConnectionLost() {
-        closeCallback?.success()
+        keepCallbackAndSendResult()
     }
 
     private fun notifyConnectionSuccess() {
+        keepCallbackAndSendResult()
+    }
+
+    private fun keepCallbackAndSendResult() {
         val result = PluginResult(PluginResult.Status.OK)
         result.keepCallback = true
         connectCallback?.sendPluginResult(result)
