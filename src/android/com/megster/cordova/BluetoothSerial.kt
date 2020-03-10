@@ -26,9 +26,15 @@ class BluetoothSerial : CordovaPlugin() {
     override fun execute(action: String, args: CordovaArgs, callbackContext: CallbackContext): Boolean {
         LOG.d(TAG, "action = $action")
         var validAction = true
+
+        try {
+            enableBluetoothIfNecessary()
+        } catch (e: Exception) {
+            Log.e(TAG, "Unable to enable bluetooth: $e")
+        }
+
         when (action) {
             CONNECT -> {
-                enableBluetoothIfNecessary()
                 connect(args, callbackContext)
             }
             DISCONNECT -> {
@@ -96,7 +102,6 @@ class BluetoothSerial : CordovaPlugin() {
         if (BluetoothSerialService.state == STATE_CONNECTED) {
             callbackContext.error("Already connected")
         } else {
-            enableBluetoothIfNecessary()
             try {
                 BluetoothSerialService.start()
                 callbackContext.success()
