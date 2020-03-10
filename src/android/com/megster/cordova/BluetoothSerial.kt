@@ -98,6 +98,17 @@ class BluetoothSerial : CordovaPlugin() {
         return validAction
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        BluetoothSerialService.stop()
+    }
+
+    private fun enableBluetoothIfNecessary() {
+        if (!bluetoothAdapter.isEnabled) {
+            bluetoothAdapter.enable()
+        }
+    }
+
     private fun listen(callbackContext: CallbackContext) {
         if (BluetoothSerialService.state == STATE_CONNECTED) {
             callbackContext.error("Already connected")
@@ -109,23 +120,6 @@ class BluetoothSerial : CordovaPlugin() {
                 callbackContext.error(e.toString())
             }
         }
-    }
-
-    private fun enableBluetoothIfNecessary() {
-        if (!bluetoothAdapter.isEnabled) {
-            bluetoothAdapter.enable()
-        }
-    }
-
-    private fun keepCallbackAndSendNoResult(callbackContext: CallbackContext) {
-        val result = PluginResult(PluginResult.Status.NO_RESULT)
-        result.keepCallback = true
-        callbackContext.sendPluginResult(result)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        BluetoothSerialService.stop()
     }
 
     @Throws(JSONException::class)
@@ -141,17 +135,23 @@ class BluetoothSerial : CordovaPlugin() {
     }
 
     private fun notifyConnectionLost() {
-        keepCallbackAndSendResult()
+        keepCallbackAndSendResult(closeCallback)
     }
 
     private fun notifyConnectionSuccess() {
-        keepCallbackAndSendResult()
+        keepCallbackAndSendResult(connectCallback)
     }
 
-    private fun keepCallbackAndSendResult() {
+    private fun keepCallbackAndSendResult(callbackContext: CallbackContext) {
         val result = PluginResult(PluginResult.Status.OK)
         result.keepCallback = true
-        connectCallback?.sendPluginResult(result)
+        callbackContext.sendPluginResult(result)
+    }
+
+    private fun keepCallbackAndSendNoResult(callbackContext: CallbackContext) {
+        val result = PluginResult(PluginResult.Status.NO_RESULT)
+        result.keepCallback = true
+        callbackContext.sendPluginResult(result)
     }
 
     private fun sendRawDataToSubscriber(data: ByteArray?) {
