@@ -142,10 +142,10 @@ class BluetoothSerial : CordovaPlugin() {
         keepCallbackAndSendResult(connectCallback)
     }
 
-    private fun keepCallbackAndSendResult(callbackContext: CallbackContext) {
+    private fun keepCallbackAndSendResult(callbackContext: CallbackContext?) {
         val result = PluginResult(PluginResult.Status.OK)
         result.keepCallback = true
-        callbackContext.sendPluginResult(result)
+        callbackContext?.sendPluginResult(result)
     }
 
     private fun keepCallbackAndSendNoResult(callbackContext: CallbackContext) {
