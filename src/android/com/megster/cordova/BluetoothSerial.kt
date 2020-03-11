@@ -131,7 +131,7 @@ class BluetoothSerial : CordovaPlugin() {
 
     private fun send(args: CordovaArgs, callbackContext: CallbackContext) {
         if (BluetoothSerialService.state != STATE_CONNECTED) {
-            Log.d(TAG, "Attempt send but not connected")
+            Log.d(TAG, "Attempted send but not connected")
             callbackContext.error("Not connected")
         } else {
             try {
