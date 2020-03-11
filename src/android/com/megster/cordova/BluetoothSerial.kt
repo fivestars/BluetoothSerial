@@ -42,7 +42,7 @@ class BluetoothSerial : CordovaPlugin() {
                 connect(args, callbackContext)
             }
             DISCONNECT -> {
-                disconnect()
+                disconnect(callbackContext)
             }
             SEND -> {
                 send(args, callbackContext)
