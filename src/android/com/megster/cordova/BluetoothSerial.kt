@@ -120,7 +120,7 @@ class BluetoothSerial : CordovaPlugin() {
                 BluetoothSerialService.connect(device)
                 callbackContext.success()
             } else {
-                Log.e(TAG, "Could not connect to $macAddress: $e")
+                Log.d(TAG, "Could not connect to $macAddress")
                 callbackContext.error("Could not connect to $macAddress")
             }
         } catch (e: Exception) {
@@ -145,7 +145,7 @@ class BluetoothSerial : CordovaPlugin() {
         }
     }
 
-    private fun disconnect() {
+    private fun disconnect(callbackContext: CallbackContext) {
         try {
             BluetoothSerialService.stop()
             callbackContext.success()
