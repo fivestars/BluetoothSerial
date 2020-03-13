@@ -221,6 +221,8 @@ class BluetoothSerial : CordovaPlugin() {
     }
 
     companion object {
+        private const val IS_ENABLED = "isEnabled"
+        private const val ENABLE = "enable"
         private const val CONNECT = "connect"
         private const val LISTEN = "listen"
         private const val DISCONNECT = "disconnect"
