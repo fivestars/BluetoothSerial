@@ -30,7 +30,7 @@ class BluetoothSerial : CordovaPlugin() {
         when (action) {
             IS_ENABLED -> {
                 // accessing isEnabled should never throw
-                callbackContext.success(bluetoothAdapter.isEnabled)
+                callbackContext.success(bluetoothAdapter.isEnabled ? 1 : 0)
             }
             ENABLE -> {
                 enable(callbackContext)
@@ -109,9 +109,9 @@ class BluetoothSerial : CordovaPlugin() {
                 // to begin enabling the adapter, which is an
                 // asynchronous process.
                 // https://github.com/aosp-mirror/platform_frameworks_base/blob/nougat-release/core/java/android/bluetooth/BluetoothAdapter.java#L899
-                callbackContext.success(bluetoothAdapter.enable())
+                callbackContext.success(bluetoothAdapter.enable() ? 1 : 0)
             } else {
-                callbackContext.success(true)
+                callbackContext.success(1)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Unable to enable bluetooth: $e")
