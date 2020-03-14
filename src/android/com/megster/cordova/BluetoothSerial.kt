@@ -29,8 +29,7 @@ class BluetoothSerial : CordovaPlugin() {
 
         when (action) {
             IS_ENABLED -> {
-                // accessing isEnabled should never throw
-                callbackContext.success(if (bluetoothAdapter.isEnabled()) 1 else 0)
+                isEnabled(callbackContext)
             }
             ENABLE -> {
                 enable(callbackContext)
@@ -95,7 +94,7 @@ class BluetoothSerial : CordovaPlugin() {
 
     private fun isEnabled(callbackContext: CallbackContext) {
         try {
-
+            callbackContext.success(if (bluetoothAdapter.isEnabled()) 1 else 0)
         } catch (e: Exception) {
             Log.e(TAG, "Unable to check isEnabled: $e")
             callbackContext.error(e.toString())
