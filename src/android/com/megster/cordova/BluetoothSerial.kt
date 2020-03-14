@@ -204,7 +204,7 @@ class BluetoothSerial : CordovaPlugin() {
         var bluetoothMacAddress: String? = null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             try {
-                val serviceField: Field = bluetoothAdapter.javaClass?.getDeclaredField("mService")
+                val serviceField: Field = bluetoothAdapter.javaClass.getDeclaredField("mService")
                 serviceField?.isAccessible = true
                 val btManagerService: Any? = serviceField.get(bluetoothAdapter)
                 btManagerService?.run {
