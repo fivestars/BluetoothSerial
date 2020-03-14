@@ -30,7 +30,7 @@ class BluetoothSerial : CordovaPlugin() {
         when (action) {
             IS_ENABLED -> {
                 // accessing isEnabled should never throw
-                callbackContext.success(if (bluetoothAdapter.isEnabled) 1 else 0)
+                callbackContext.success(if (bluetoothAdapter.isEnabled()) 1 else 0)
             }
             ENABLE -> {
                 enable(callbackContext)
