@@ -32,6 +32,7 @@ object BluetoothSerialService {
     private var connectedCallback: ConnectedCallback? = null
     private var closedCallback: ClosedCallback? = null
     private var dataCallback: DataCallback? = null
+    private var remoteDeviceMacAddress: String? = null
 
 
     /**
@@ -49,7 +50,9 @@ object BluetoothSerialService {
             mState = state
 
             if (mState == STATE_CONNECTED) {
-                connectedCallback?.connected()
+                connectedCallback?.connected(remoteDeviceMacAddress)
+            } else {
+                remoteDeviceMacAddress = null
             }
         }
 
@@ -134,6 +137,11 @@ object BluetoothSerialService {
         // Start the thread to manage the connection and perform transmissions
         connectedThread = ConnectedThread(socket, socketType)
         connectedThread!!.start()
+        var bluetoothDevice: BluetoothDevice? = socket?.getRemoteDevice()
+        bluetoothDevice?.let {
+            remoteDeviceMacAddress = it.address
+            Log.d(LOG_TAG, "Remote device's mac address: ${remoteDeviceMacAddress}")
+        }
         state = STATE_CONNECTED
     }
 
@@ -377,7 +385,7 @@ object BluetoothSerialService {
     }
 
     interface ConnectedCallback {
-        fun connected()
+        fun connected(remoteDeviceMacAddress: String?)
     }
 
     interface ClosedCallback {
