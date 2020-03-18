@@ -51,6 +51,8 @@ object BluetoothSerialService {
 
             if (mState == STATE_CONNECTED) {
                 connectedCallback?.connected(remoteDeviceMacAddress)
+            } else {
+                remoteDeviceMacAddress = null
             }
         }
 
@@ -135,6 +137,11 @@ object BluetoothSerialService {
         // Start the thread to manage the connection and perform transmissions
         connectedThread = ConnectedThread(socket, socketType)
         connectedThread!!.start()
+        var bluetoothDevice: BluetoothDevice? = socket?.getRemoteDevice()
+        bluetoothDevice?.let {
+            remoteDeviceMacAddress = it.address
+            Log.d(LOG_TAG, "Remote device's mac address: ${remoteDeviceMacAddress}")
+        }
         state = STATE_CONNECTED
     }
 
@@ -176,7 +183,6 @@ object BluetoothSerialService {
     }
 
     private fun connectionLost() {
-        remoteDeviceMacAddress = null
         closedCallback?.closed()
     }
 
@@ -372,13 +378,6 @@ object BluetoothSerialService {
                 tmpOut = socket.outputStream
             } catch (e: IOException) {
                 Log.e(LOG_TAG, "temp sockets not created", e)
-            }
-            try {
-                var bluetoothDevice: BluetoothDevice? = mmSocket?.getRemoteDevice()
-                Log.d(LOG_TAG, "Remote device's mac address: ${bluetoothDevice?.getAddress()}")
-                remoteDeviceMacAddress = bluetoothDevice?.getAddress()
-            } catch (e: IOException) {
-                Log.e(LOG_TAG, "could not get mac address for remote device", e)
             }
             mmInStream = tmpIn
             mmOutStream = tmpOut
